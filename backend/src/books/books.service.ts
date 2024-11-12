@@ -1,47 +1,56 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBookDto } from './create-book-dto';
-import { UpdateBookDto } from './update-book-dto';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CreateBookDto } from './dto/create-book.dto';
+import { UpdateBookDto } from './dto/update-book.dto';
+import { Book } from './entities/book.entity';
 
 @Injectable()
 export class BooksService {
-  books = [];
-  findAll(role?: 'TEST') {
-    if (role) {
-      return this.books.filter((book) => book.role === role);
+  constructor(
+    @InjectRepository(Book)
+    private booksRepository: Repository<Book>,
+  ) {}
+
+  // Validate ID format (number)
+  private validateId(id: number): void {
+    if (isNaN(id)) {
+      throw new BadRequestException(`Invalid ID format: ${id}`);
     }
-
-    return this.books;
   }
 
-  findOne(id: number) {
-    const user = this.books.find((book) => book.id === id);
-    return user;
+  async findAll(): Promise<Book[]> {
+    return this.booksRepository.find();
   }
 
-  create(createBookDto: CreateBookDto) {
-    this.books.push(createBookDto);
-
-    return createBookDto;
+  async findOne(id: number): Promise<Book> {
+    this.validateId(id); // Ensure the ID is valid
+    const book = await this.booksRepository.findOne({ where: { id } });
+    if (!book) {
+      throw new NotFoundException(`Book with ID ${id} not found`);
+    }
+    return book;
   }
 
-  update(
-    id: number,
-    updateBookDto: UpdateBookDto,
-  ) {
-    const book = this.books.map((book) => {
-      if (book.id === id) {
-        return { ...book, updateBookDto };
-      }
-    });
-    return updateBookDto;
+  async create(createBookDto: CreateBookDto): Promise<Book> {
+    // Ensure createBookDto does not include a string id if you are using number type IDs
+    const book = this.booksRepository.create(createBookDto); // Create book without id
+    return this.booksRepository.save(book); // Save the book, and id will be auto-generated
+  }
+
+  async update(id: number, updateBookDto: UpdateBookDto): Promise<Book> {
+    this.validateId(id); // Ensure the ID is valid
+    const book = await this.findOne(id); // Ensure book exists
+    Object.assign(book, updateBookDto); // Update fields
+    return this.booksRepository.save(book);
   }
   
 
-  delete(id: number) {
-    const removedBook = this.findOne(id);
-
-    this.books = this.books.filter((book) => book.id !== id);
-
-    return removedBook;
+  async remove(id: number): Promise<void> {
+    this.validateId(id); // Ensure the ID is valid
+    const result = await this.booksRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Book with ID ${id} not found`);
+    }
   }
 }
