@@ -21,4 +21,14 @@ Each part is located in separate folders within the project.
 ## Getting Started
 
 ### 1. Clone the repository
+### run: npm install in frontend directory
+### run: npm install in backend directory
+### create a database
+### db name: book_management
+### user: nest_user
+### password: nest_user
+
+### for run:
+### backend: npm start
+### frontend: npm run dev
 
