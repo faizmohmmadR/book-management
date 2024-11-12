@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: nest_user
+      MYSQL_DATABASE: nest_user
+      MYSQL_USER: nest_user
+      MYSQL_PASSWORD: book_management
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  nestjs-backend:
+    build:
+      context: ./backend
+    container_name: nestjs-backend
+    restart: always
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=nest_user
+      - DB_PASSWORD=book_management
+      - DB_NAME=nest_user
+    depends_on:
+      - mysql
+    ports:
+      - "3000:3000"
+
+  nextjs-frontend:
+    build:
+      context: ./frontend
+    container_name: nextjs-frontend
+    restart: always
+    environment:
+      - API_URL=http://nestjs-backend:3000
+    depends_on:
+      - nestjs-backend
+    ports:
+      - "3001:3000"
+
+volumes:
+  mysql-data:
